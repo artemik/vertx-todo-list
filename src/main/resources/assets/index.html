@@ -11,7 +11,7 @@
 <body>
 <div class="container" role="main">
     <div class="jumbotron">
-        <h1>Todo list</h1>
+        <h1>Simple Todo List</h1>
 
         <p>An example of a simple todo application using Vert.x and Vertx Web.</p>
     </div>
@@ -46,14 +46,14 @@
         initModal();
     });
     function create(name, origin) {
-        $.post("/api/whiskies", JSON.stringify({name: name, origin: origin}), function () {
+        $.post("/api/todos", JSON.stringify({name: name, origin: origin}), function () {
             load();
         }, "json");
     }
     function remove(id) {
         $.ajax({
             method: "DELETE",
-            url: "/api/whiskies/" + id
+            url: "/api/todos/" + id
         }).done(function () {
             load();
         });
@@ -61,7 +61,7 @@
     function update(id, name, origin) {
         $.ajax({
             method: "PUT",
-            url: "/api/whiskies/" + id,
+            url: "/api/todos/" + id,
             data: JSON.stringify({name: name, origin: origin})
         }).done(function () {
             load();
@@ -69,7 +69,7 @@
     }
     function load() {
         $("#content").children().remove();
-        $.getJSON("/api/whiskies", function (data) {
+        $.getJSON("/api/todos", function (data) {
             $.each(data, function (key, val) {
                 $("<tr><td>" + val.id + "</td><td>" + val.name + "</td><td>" + val.origin + "</td>" +
                         "<td>" +

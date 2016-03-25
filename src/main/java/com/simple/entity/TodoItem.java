@@ -6,8 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Artem on 26.03.2016
  * @version $Id: $
  */
-public class Whisky {
-
+public class TodoItem {
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     private final int id;
@@ -16,13 +15,13 @@ public class Whisky {
 
     private String origin;
 
-    public Whisky(String name, String origin) {
+    public TodoItem(String name, String origin) {
         this.id = COUNTER.getAndIncrement();
         this.name = name;
         this.origin = origin;
     }
 
-    public Whisky() {
+    public TodoItem() {
         this.id = COUNTER.getAndIncrement();
     }
 

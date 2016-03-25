@@ -1,6 +1,6 @@
 package com.simple.verticle;
 
-import com.simple.entity.Whisky;
+import com.simple.entity.TodoItem;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerResponse;
@@ -19,7 +19,7 @@ import java.util.Map;
  * @version $Id: $
  */
 public class SimpleTodoVerticle extends AbstractVerticle {
-    private Map<Integer, Whisky> products = new LinkedHashMap<>();
+    private Map<Integer, TodoItem> products = new LinkedHashMap<>();
 
     /**
      * This method is called when the verticle is deployed. It creates a HTTP server and registers a simple request
@@ -48,12 +48,12 @@ public class SimpleTodoVerticle extends AbstractVerticle {
 
         router.route("/assets/*").handler(StaticHandler.create("assets"));
 
-        router.get("/api/whiskies").handler(this::getAll);
-        router.route("/api/whiskies*").handler(BodyHandler.create());
-        router.post("/api/whiskies").handler(this::addOne);
-        router.get("/api/whiskies/:id").handler(this::getOne);
-        router.put("/api/whiskies/:id").handler(this::updateOne);
-        router.delete("/api/whiskies/:id").handler(this::deleteOne);
+        router.get("/api/todos").handler(this::getAll);
+        router.route("/api/todos*").handler(BodyHandler.create());
+        router.post("/api/todos").handler(this::addOne);
+        router.get("/api/todos/:id").handler(this::getOne);
+        router.put("/api/todos/:id").handler(this::updateOne);
+        router.delete("/api/todos/:id").handler(this::deleteOne);
 
 
         // Create the HTTP server and pass the "accept" method to the request handler.
@@ -76,16 +76,16 @@ public class SimpleTodoVerticle extends AbstractVerticle {
 
     private void addOne(RoutingContext routingContext) {
         // Read the request's content and create an instance of Whisky.
-        final Whisky whisky = Json.decodeValue(routingContext.getBodyAsString(),
-                Whisky.class);
+        final TodoItem todoItem = Json.decodeValue(routingContext.getBodyAsString(),
+                TodoItem.class);
         // Add it to the backend map
-        products.put(whisky.getId(), whisky);
+        products.put(todoItem.getId(), todoItem);
 
         // Return the created whisky as JSON
         routingContext.response()
                 .setStatusCode(201)
                 .putHeader("content-type", "application/json; charset=utf-8")
-                .end(Json.encodePrettily(whisky));
+                .end(Json.encodePrettily(todoItem));
     }
 
     private void getOne(RoutingContext routingContext) {
@@ -94,13 +94,13 @@ public class SimpleTodoVerticle extends AbstractVerticle {
             routingContext.response().setStatusCode(400).end();
         } else {
             final Integer idAsInteger = Integer.valueOf(id);
-            Whisky whisky = products.get(idAsInteger);
-            if (whisky == null) {
+            TodoItem todoItem = products.get(idAsInteger);
+            if (todoItem == null) {
                 routingContext.response().setStatusCode(404).end();
             } else {
                 routingContext.response()
                         .putHeader("content-type", "application/json; charset=utf-8")
-                        .end(Json.encodePrettily(whisky));
+                        .end(Json.encodePrettily(todoItem));
             }
         }
     }
@@ -112,15 +112,15 @@ public class SimpleTodoVerticle extends AbstractVerticle {
             routingContext.response().setStatusCode(400).end();
         } else {
             final Integer idAsInteger = Integer.valueOf(id);
-            Whisky whisky = products.get(idAsInteger);
-            if (whisky == null) {
+            TodoItem todoItem = products.get(idAsInteger);
+            if (todoItem == null) {
                 routingContext.response().setStatusCode(404).end();
             } else {
-                whisky.setName(json.getString("name"));
-                whisky.setOrigin(json.getString("origin"));
+                todoItem.setName(json.getString("name"));
+                todoItem.setOrigin(json.getString("origin"));
                 routingContext.response()
                         .putHeader("content-type", "application/json; charset=utf-8")
-                        .end(Json.encodePrettily(whisky));
+                        .end(Json.encodePrettily(todoItem));
             }
         }
     }
@@ -146,11 +146,11 @@ public class SimpleTodoVerticle extends AbstractVerticle {
     }
 
     private void createSomeData() {
-        Whisky first = new Whisky("Check proposal.", "GSoC");
-        Whisky second = new Whisky("Accept Artem Voskoboynick as a GSoC 2016 student.", "GSoC");
-        Whisky third = new Whisky("Enjoy midterm evaluation results.", "GSoC");
-        Whisky fourth = new Whisky("Enjoy final evaluation results.", "GSoC");
-        Whisky fifth = new Whisky("Have a party!", "GSoC");
+        TodoItem first = new TodoItem("Check proposal.", "GSoC");
+        TodoItem second = new TodoItem("Accept Artem Voskoboynick as a GSoC 2016 student.", "GSoC");
+        TodoItem third = new TodoItem("Enjoy midterm evaluation results.", "GSoC");
+        TodoItem fourth = new TodoItem("Enjoy final evaluation results.", "GSoC");
+        TodoItem fifth = new TodoItem("Have a party!", "GSoC");
         products.put(first.getId(), first);
         products.put(second.getId(), second);
         products.put(third.getId(), third);
