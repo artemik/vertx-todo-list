@@ -75,13 +75,13 @@ public class SimpleTodoVerticle extends AbstractVerticle {
     }
 
     private void addOne(RoutingContext routingContext) {
-        // Read the request's content and create an instance of Whisky.
+        // Read the request's content and create an instance of TodoItem.
         final TodoItem todoItem = Json.decodeValue(routingContext.getBodyAsString(),
                 TodoItem.class);
         // Add it to the backend map
         products.put(todoItem.getId(), todoItem);
 
-        // Return the created whisky as JSON
+        // Return the created todoItem as JSON
         routingContext.response()
                 .setStatusCode(201)
                 .putHeader("content-type", "application/json; charset=utf-8")
