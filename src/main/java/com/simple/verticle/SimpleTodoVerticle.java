@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 public class SimpleTodoVerticle extends AbstractVerticle {
     private static final String MONGO_DB_NAME = "todos-db";
     private static final String MONGO_TODOS_COLLECTION_NAME = "todos";
-    private static final AtomicInteger COUNTER = new AtomicInteger();
+    private static final AtomicInteger TODOS_ID_COUNTER = new AtomicInteger();
 
     private MongoClient mongoClient;
 
@@ -210,7 +210,7 @@ public class SimpleTodoVerticle extends AbstractVerticle {
 
     private JsonObject createTodoDocument(String name, String details) {
         return new JsonObject()
-                .put("id", COUNTER.getAndIncrement())
+                .put("id", TODOS_ID_COUNTER.getAndIncrement())
                 .put("name", name)
                 .put("details", details);
     }
