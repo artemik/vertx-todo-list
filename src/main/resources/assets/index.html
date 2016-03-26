@@ -45,8 +45,8 @@
         load();
         initModal();
     });
-    function create(name, origin) {
-        $.post("/api/todos", JSON.stringify({name: name, origin: origin}), function () {
+    function create(name, details) {
+        $.post("/api/todos", JSON.stringify({name: name, details: details}), function () {
             load();
         }, "json");
     }
@@ -58,11 +58,11 @@
             load();
         });
     }
-    function update(id, name, origin) {
+    function update(id, name, details) {
         $.ajax({
             method: "PUT",
             url: "/api/todos/" + id,
-            data: JSON.stringify({name: name, origin: origin})
+            data: JSON.stringify({name: name, details: details})
         }).done(function () {
             load();
         });
@@ -71,13 +71,13 @@
         $("#content").children().remove();
         $.getJSON("/api/todos", function (data) {
             $.each(data, function (key, val) {
-                $("<tr><td>" + val.id + "</td><td>" + val.name + "</td><td>" + val.origin + "</td>" +
+                $("<tr><td>" + val.id + "</td><td>" + val.name + "</td><td>" + val.details + "</td>" +
                         "<td>" +
                         "<button data-action='edit' class='btn btn-primary btn-sm product-edit' " +
                         "data-toggle='modal' " +
                         "data-target='#productModal' " +
                         "data-name='" + val.name + "' " +
-                        "data-origin='" + val.origin + "' " +
+                        "data-details='" + val.details + "' " +
                         "data-id='" + val.id + "'>" +
                         "<span class='glyphicon glyphicon-pencil'></span>" +
                         "</button>" +
@@ -108,17 +108,17 @@
             if (action === "add") {
                 modal.find('.modal-title').text("Add a bottle");
                 modal.find('#product-name').val("");
-                modal.find('#product-origin').val("");
+                modal.find('#product-details').val("");
                 productAction.click(function () {
-                    create($("#product-name").val(), $("#product-origin").val());
+                    create($("#product-name").val(), $("#product-details").val());
                     $('#productModal').modal('toggle');
                 });
             } else {
                 modal.find('.modal-title').text("Edit a bottle");
                 modal.find('#product-name').val(button.data("name"));
-                modal.find('#product-origin').val(button.data("origin"));
+                modal.find('#product-details').val(button.data("details"));
                 productAction.click(function () {
-                    update(id, $("#product-name").val(), $("#product-origin").val());
+                    update(id, $("#product-name").val(), $("#product-details").val());
                     $('#productModal').modal('toggle');
                 });
             }
@@ -141,8 +141,8 @@
                         <input type="text" class="form-control" id="product-name">
                     </div>
                     <div class="form-group">
-                        <label for="product-origin" class="control-label">Details:</label>
-                        <input type="text" class="form-control" id="product-origin">
+                        <label for="product-details" class="control-label">Details:</label>
+                        <input type="text" class="form-control" id="product-details">
                     </div>
                 </form>
             </div>

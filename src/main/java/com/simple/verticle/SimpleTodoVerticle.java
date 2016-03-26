@@ -1,25 +1,30 @@
 package com.simple.verticle;
 
-import com.simple.entity.TodoItem;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.FindOptions;
+import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 /**
  * @author Artem on 26.03.2016
  * @version $Id: $
  */
 public class SimpleTodoVerticle extends AbstractVerticle {
-    private Map<Integer, TodoItem> products = new LinkedHashMap<>();
+    private static final String MONGO_DB_NAME = "todos-db";
+    private static final String MONGO_TODOS_COLLECTION_NAME = "todos";
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+
+    private MongoClient mongoClient;
 
     /**
      * This method is called when the verticle is deployed. It creates a HTTP server and registers a simple request
@@ -33,6 +38,8 @@ public class SimpleTodoVerticle extends AbstractVerticle {
      */
     @Override
     public void start(Future<Void> fut) {
+        mongoClient = MongoClient.createShared(
+                vertx, new JsonObject().put("db_name", MONGO_DB_NAME));
         createSomeData();
 
         // Create a router object.
@@ -43,18 +50,16 @@ public class SimpleTodoVerticle extends AbstractVerticle {
             HttpServerResponse response = routingContext.response();
             response
                     .putHeader("content-type", "text/html")
-                    .end("<h1>Hello from my first Vert.x 3 application</h1>");
+                    .end("<h1>Hello from Simple Todo List application</h1>");
         });
 
         router.route("/assets/*").handler(StaticHandler.create("assets"));
 
-        router.get("/api/todos").handler(this::getAll);
         router.route("/api/todos*").handler(BodyHandler.create());
+        router.get("/api/todos").handler(this::getAll);
         router.post("/api/todos").handler(this::addOne);
-        router.get("/api/todos/:id").handler(this::getOne);
         router.put("/api/todos/:id").handler(this::updateOne);
         router.delete("/api/todos/:id").handler(this::deleteOne);
-
 
         // Create the HTTP server and pass the "accept" method to the request handler.
         vertx
@@ -75,53 +80,67 @@ public class SimpleTodoVerticle extends AbstractVerticle {
     }
 
     private void addOne(RoutingContext routingContext) {
-        // Read the request's content and create an instance of TodoItem.
-        final TodoItem todoItem = Json.decodeValue(routingContext.getBodyAsString(),
-                TodoItem.class);
-        // Add it to the backend map
-        products.put(todoItem.getId(), todoItem);
+        JsonObject json = routingContext.getBodyAsJson();
 
-        // Return the created todoItem as JSON
-        routingContext.response()
-                .setStatusCode(201)
-                .putHeader("content-type", "application/json; charset=utf-8")
-                .end(Json.encodePrettily(todoItem));
-    }
-
-    private void getOne(RoutingContext routingContext) {
-        final String id = routingContext.request().getParam("id");
-        if (id == null) {
-            routingContext.response().setStatusCode(400).end();
-        } else {
-            final Integer idAsInteger = Integer.valueOf(id);
-            TodoItem todoItem = products.get(idAsInteger);
-            if (todoItem == null) {
-                routingContext.response().setStatusCode(404).end();
+        JsonObject doc = createTodoDocument(json.getString("name"), json.getString("details"));
+        mongoClient.insert(MONGO_TODOS_COLLECTION_NAME, doc, addRes -> {
+            if (addRes.succeeded()) {
+                mongoClient.find(
+                        MONGO_TODOS_COLLECTION_NAME,
+                        new JsonObject()
+                                .put("id", doc.getValue("id")),
+                        findRes -> {
+                            if (findRes.succeeded()) {
+                                routingContext.response()
+                                        .putHeader("content-type", "application/json; charset=utf-8")
+                                        .end(Json.encodePrettily(findRes.result()));
+                            } else {
+                                findRes.cause().printStackTrace();
+                            }
+                        }
+                );
             } else {
-                routingContext.response()
-                        .putHeader("content-type", "application/json; charset=utf-8")
-                        .end(Json.encodePrettily(todoItem));
+                addRes.cause().printStackTrace();
             }
-        }
+        });
     }
 
     private void updateOne(RoutingContext routingContext) {
-        final String id = routingContext.request().getParam("id");
+        String id = routingContext.request().getParam("id");
         JsonObject json = routingContext.getBodyAsJson();
         if (id == null || json == null) {
             routingContext.response().setStatusCode(400).end();
         } else {
-            final Integer idAsInteger = Integer.valueOf(id);
-            TodoItem todoItem = products.get(idAsInteger);
-            if (todoItem == null) {
-                routingContext.response().setStatusCode(404).end();
-            } else {
-                todoItem.setName(json.getString("name"));
-                todoItem.setOrigin(json.getString("origin"));
-                routingContext.response()
-                        .putHeader("content-type", "application/json; charset=utf-8")
-                        .end(Json.encodePrettily(todoItem));
-            }
+            Integer idAsInteger = Integer.valueOf(id);
+            mongoClient.update(
+                    MONGO_TODOS_COLLECTION_NAME,
+                    new JsonObject()
+                            .put("id", idAsInteger),
+                    new JsonObject().put("$set",
+                            new JsonObject()
+                                    .put("name", json.getString("name"))
+                                    .put("details", json.getString("details"))),
+                    updateRes -> {
+                        if (updateRes.succeeded()) {
+                            mongoClient.find(
+                                    MONGO_TODOS_COLLECTION_NAME,
+                                    new JsonObject()
+                                            .put("id", idAsInteger),
+                                    findRes -> {
+                                        if (findRes.succeeded()) {
+                                            routingContext.response()
+                                                    .putHeader("content-type", "application/json; charset=utf-8")
+                                                    .end(Json.encodePrettily(findRes.result()));
+                                        } else {
+                                            findRes.cause().printStackTrace();
+                                        }
+                                    }
+                            );
+                        } else {
+                            updateRes.cause().printStackTrace();
+                        }
+                    }
+            );
         }
     }
 
@@ -131,30 +150,68 @@ public class SimpleTodoVerticle extends AbstractVerticle {
             routingContext.response().setStatusCode(400).end();
         } else {
             Integer idAsInteger = Integer.valueOf(id);
-            products.remove(idAsInteger);
+            mongoClient.remove(
+                    MONGO_TODOS_COLLECTION_NAME,
+                    new JsonObject().put("id", idAsInteger),
+                    res -> {
+                        if (res.succeeded()) {
+                            routingContext.response().setStatusCode(204).end();
+                        } else {
+                            res.cause().printStackTrace();
+                        }
+                    }
+            );
         }
-        routingContext.response().setStatusCode(204).end();
     }
 
     private void getAll(RoutingContext routingContext) {
         // Write the HTTP response
         // The response is in JSON using the utf-8 encoding
-        // We returns the list of bottles
-        routingContext.response()
-                .putHeader("content-type", "application/json; charset=utf-8")
-                .end(Json.encodePrettily(products.values()));
+        // We return the list of todos
+        mongoClient.findWithOptions(
+                MONGO_TODOS_COLLECTION_NAME,
+                new JsonObject(),
+                new FindOptions().setSort(new JsonObject().put("id", 1)),
+                res -> {
+                    if (res.succeeded()) {
+                        routingContext.response()
+                                .putHeader("content-type", "application/json; charset=utf-8")
+                                .end(Json.encodePrettily(res.result()));
+                    } else {
+                        res.cause().printStackTrace();
+                    }
+                }
+        );
     }
 
     private void createSomeData() {
-        TodoItem first = new TodoItem("Check proposal.", "GSoC");
-        TodoItem second = new TodoItem("Accept Artem Voskoboynick as a GSoC 2016 student.", "GSoC");
-        TodoItem third = new TodoItem("Enjoy midterm evaluation results.", "GSoC");
-        TodoItem fourth = new TodoItem("Enjoy final evaluation results.", "GSoC");
-        TodoItem fifth = new TodoItem("Have a party!", "GSoC");
-        products.put(first.getId(), first);
-        products.put(second.getId(), second);
-        products.put(third.getId(), third);
-        products.put(fourth.getId(), fourth);
-        products.put(fifth.getId(), fifth);
+        mongoClient.dropCollection(MONGO_TODOS_COLLECTION_NAME, dropRes -> {
+            if (dropRes.succeeded()) {
+                Stream
+                        .of(
+                                createTodoDocument("Check proposal", "GSoC"),
+                                createTodoDocument("Accept Artem Voskoboynick as a GSoC 2016 student", "GSoC"),
+                                createTodoDocument("Enjoy midterm evaluation results", "GSoC"),
+                                createTodoDocument("Enjoy final evaluation results", "GSoC"),
+                                createTodoDocument("Have a party!", "GSoC")
+                        )
+                        .forEach(doc ->
+                                mongoClient.insert(MONGO_TODOS_COLLECTION_NAME, doc, insertRes -> {
+                                    if (insertRes.failed()) {
+                                        insertRes.cause().printStackTrace();
+                                    }
+                                })
+                        );
+            } else {
+                dropRes.cause().printStackTrace();
+            }
+        });
+    }
+
+    private JsonObject createTodoDocument(String name, String details) {
+        return new JsonObject()
+                .put("id", COUNTER.getAndIncrement())
+                .put("name", name)
+                .put("details", details);
     }
 }
