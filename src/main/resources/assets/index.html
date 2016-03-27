@@ -71,18 +71,18 @@
         $("#content").children().remove();
         $.getJSON("/api/todos", function (data) {
             $.each(data, function (key, val) {
-                $("<tr><td>" + val.id + "</td><td>" + val.name + "</td><td>" + val.details + "</td>" +
+                $("<tr><td>" + val._id + "</td><td>" + val.name + "</td><td>" + val.details + "</td>" +
                         "<td>" +
                         "<button data-action='edit' class='btn btn-primary btn-sm product-edit' " +
                         "data-toggle='modal' " +
                         "data-target='#productModal' " +
                         "data-name='" + val.name + "' " +
                         "data-details='" + val.details + "' " +
-                        "data-id='" + val.id + "'>" +
+                        "data-id='" + val._id + "'>" +
                         "<span class='glyphicon glyphicon-pencil'></span>" +
                         "</button>" +
                         "&nbsp;" +
-                        "<button class='btn btn-success btn-sm product-delete' data-id='" + val.id + "'>" +
+                        "<button class='btn btn-success btn-sm product-delete' data-id='" + val._id + "'>" +
                         "   <span class='glyphicon glyphicon-ok'></span>" +
                         "</button>" +
                         "</td>" +

@@ -1,11 +1,8 @@
 plugins {
     id 'java'
     id 'idea'
-    id 'application'
     id 'com.github.johnrengelman.shadow' version '1.2.3'
 }
-
-mainClassName = "io.vertx.core.Launcher"
 
 repositories {
     mavenCentral()
@@ -30,5 +27,8 @@ shadowJar {
 }
 
 task runShadowJar(dependsOn: shadowJar) << {
-    javaexec { main = "-jar"; args shadowJar.archivePath }
+    javaexec {
+        main = "-jar";
+        args shadowJar.archivePath
+    }
 }
